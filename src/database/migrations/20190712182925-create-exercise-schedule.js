@@ -37,20 +37,21 @@ module.exports = {
       },
       start_seq: {
         type: Sequelize.INTEGER,
-        defaultValue: 1,
+        allowNull: true,
       },
       end_seq: {
         type: Sequelize.INTEGER,
       },
       multiplier_seq: {
         type: Sequelize.INTEGER,
-        defaultValue: 1,
+        allowNull: true,
       },
       schedule_id: {
         type: Sequelize.INTEGER,
         references: { model: 'schedules', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
+        allowNull: true,
       },
       created_at: {
         type: Sequelize.DATE,

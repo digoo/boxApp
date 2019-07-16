@@ -19,7 +19,7 @@ class Schedule extends Model {
             return format(this.end, 'HH:mm:ss');
           },
         },
-        classLimit: Sequelize.INTEGER,
+        class_limit: Sequelize.INTEGER,
         canceled: Sequelize.BOOLEAN,
         canceled_at: Sequelize.DATE,
         past: {

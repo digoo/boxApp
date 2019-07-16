@@ -8,7 +8,7 @@ class ExerciseSchedule extends Model {
         duration: Sequelize.INTEGER,
         start_seq: Sequelize.INTEGER,
         end_seq: Sequelize.INTEGER,
-        miltiplier_seq: Sequelize.INTEGER,
+        multiplier_seq: Sequelize.INTEGER,
       },
       {
         sequelize,
