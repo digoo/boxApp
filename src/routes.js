@@ -7,9 +7,9 @@ import SessionController from './app/controllers/SessionController';
 import FileController from './app/controllers/FileController';
 import UserLevelController from './app/controllers/UserLevelController';
 import SchedulerController from './app/controllers/SchedulerController';
-// import ProviderController from './app/controllers/ProviderController';
+import ProviderController from './app/controllers/ProviderController';
+import ScheduleController from './app/controllers/ScheduleController';
 // import AppointmentController from './app/controllers/AppointmentController';
-// import ScheduleController from './app/controllers/ScheduleController';
 // import AvailableController from './app/controllers/AvailableController';
 import NotificationController from './app/controllers/NotificationController';
 
@@ -32,17 +32,21 @@ routes.get('/userLevel', UserLevelController.index);
 routes.put('/userLevel/:id', UserLevelController.update);
 routes.delete('/userLevel/:id', UserLevelController.delete);
 
+// Route to create schedule exercises, index, store, update, delete user_level > 2 can update it
+// update and delete are not yet coded to perform correct results, do not include it until these fixes
 routes.get('/scheduler', SchedulerController.index);
 routes.post('/scheduler', SchedulerController.store);
+// routes.put('/scheduler/:id', SchedulerController.update);
+// routes.delete('/scheduler/:id', SchedulerController.delete);
 
-// routes.get('/providers', ProviderController.index);
+routes.get('/providers', ProviderController.index);
 // routes.get('/providers/:providerId/available', AvailableController.index);
+
+routes.get('/schedule', ScheduleController.index);
 
 // routes.get('/appointments', AppointmentController.index);
 // routes.post('/appointments', AppointmentController.store);
 // routes.delete('/appointments/:id', AppointmentController.delete);
-
-routes.get('/scheduler', SchedulerController.index);
 
 routes.get('/notifications', NotificationController.index);
 routes.put('/notifications/:id', NotificationController.update);

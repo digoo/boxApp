@@ -1,41 +1,42 @@
-import {
-  startOfDay,
-  endOfDay,
-  parseISO,
-  startOfWeek,
-  endOfWeek,
-  format,
-} from 'date-fns';
+import { parse } from 'date-fns';
 import { Op } from 'sequelize';
 
-import Appointment from '../models/Appointment';
 import User from '../models/User';
-import { Schedule } from '../models/Schedule';
+import Schedule from '../models/Schedule';
 
 class ScheduleController {
   async index(req, res) {
-    const checkUserProvider = await User.findOne({
-      where: { id: req.userId, provider: true },
+    const checkRegularUser = await User.findOne({
+      where: { id: req.userId, user_level_id: [3, 5] },
     });
-    if (!checkUserProvider) {
-      return res.status(400).json({ error: 'User is not a provider!' });
+    if (!checkRegularUser) {
+      return res
+        .status(400)
+        .json({ error: 'You are not able to create schedules!' });
     }
 
-    const { date } = req.query;
-    const parsedDate = parseISO(date);
-
-    const appointments = await Appointment.findAll({
+    const schedule = await Schedule.findAll({
+      attributes: [
+        'date',
+        'start',
+        'end',
+        'class_limit',
+        'provider_id',
+        'canceled',
+        'canceled_at',
+      ],
+      include: [
+        {
+          attributes: ['name'],
+          model: User,
+        },
+      ],
       where: {
         provider_id: req.userId,
-        canceled_at: null,
-        date: {
-          [Op.between]: [startOfDay(parsedDate), endOfDay(parsedDate)],
-        },
       },
-      order: ['date'],
     });
 
-    return res.json(appointments);
+    return res.json(schedule);
   }
 }
 

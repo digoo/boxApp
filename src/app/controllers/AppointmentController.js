@@ -11,6 +11,7 @@ import CancellationMail from '../jobs/CancellationMail';
 
 import Queue from '../../lib/Queue';
 
+// Appointment here should be used to define the appointment for the user on the available schedules
 class AppointmentController {
   async index(req, res) {
     const { page = 1 } = req.query;

@@ -263,10 +263,210 @@ class SchedulerController {
       });
     }
 
-    // Missing part to create the exercise schedule
     await ExerciseSchedule.create(req.body);
 
     return res.json({ message: `Exercise for the date: ${date} was created.` });
+  }
+
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      date: Yup.date().required(),
+      session_id: Yup.number()
+        .integer()
+        .required(),
+      session_category_id: Yup.number().integer(),
+      exercise_id: Yup.number().integer(),
+      duration: Yup.number().integer(),
+      start_seq: Yup.number().integer(),
+      end_seq: Yup.number().integer(),
+      multiplier_seq: Yup.number().integer(),
+      schedule_id: Yup.number().integer(),
+    });
+
+    const user = await User.findByPk(req.userId);
+
+    if (!(user.user_level_id > 1) && !(user.user_level_id !== 4)) {
+      return res
+        .status(403)
+        .json({ error: 'Only admin can access this function' });
+    }
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation fails' });
+    }
+
+    const {
+      date,
+      session_id,
+      session_category_id,
+      exercise_id,
+      duration,
+      start_seq,
+      end_seq,
+      multiplier_seq,
+      schedule_id,
+    } = req.body;
+
+    const dateParsed = parse(date, 'MM/dd/yyyy', new Date());
+
+    if (isPast(endOfDay(dateParsed))) {
+      return res
+        .status(400)
+        .json({ error: 'Unable to edit past schedule, check the date' });
+    }
+
+    // restrictions part, like unable to have two same sessions_id with same date, etc
+    const formatedDate = format(dateParsed, 'MM/dd/yyyy');
+    const ExerciseScheduleChecks = await ExerciseSchedule.findAll({
+      where: {
+        date: formatedDate,
+      },
+    });
+    // Datebase checks for the schedule part
+    const ExerciseScheduleSessionChecks = await ExerciseSchedule.findAll({
+      where: {
+        date: formatedDate,
+        session_id: req.body.session_id,
+        session_category_id: null,
+        exercise_id: null,
+        duration: null,
+        start_seq: null,
+        end_seq: null,
+        multiplier_seq: null,
+      },
+    });
+
+    // Main rule: All data to be checked below are related to date passed as argument (req.body.date)
+
+    // duration -> session_id = tempo
+    // duration -> session_category_id = sequence (1 = tabata 1, 2 = tabata 2)
+    // duration -> exercise_id = sequence -> pertence à: (1 = tabata 1, 2 = tabata 2)
+
+    // start/end_req -> session_id = null
+    // start/end_req -> session_category_id = rounds (start/end)
+    // start/end_req -> exercise_id = Peso M/F (start/end)
+
+    // multiplier_req -> session_id = null
+    // multiplier_req -> session_category_id = 1 em 1, 2 em 2, 3 em 3 (multiplicador)
+    // multiplier_req -> exercise_id = repetição, por ex: 20 push-ups ou 200 metros
+
+    // errorIF: session_id logic
+    if (
+      ExerciseScheduleChecks.length > 0 &&
+      ExerciseScheduleChecks.some(x => x.session_id === session_id) &&
+      duration &&
+      !session_category_id &&
+      !exercise_id &&
+      !start_seq &&
+      !end_seq &&
+      !multiplier_seq
+    ) {
+      if (schedule_id != null) {
+        const scheduleExists = await Schedule.findByPk(schedule_id);
+        if (!scheduleExists) {
+          return res
+            .status(400)
+            .json({ error: 'Schedule selected does not exists' });
+        }
+
+        if (
+          ExerciseScheduleSessionChecks.some(x => x.schedule_id === schedule_id)
+        ) {
+          return res.status(403).json({
+            error: `Unable to create a second session with id#${session_id} and schedule with id #${schedule_id} for the same selected day`,
+          });
+        }
+      } else {
+        return res.status(403).json({
+          error: `Unable to create a second session with id#${session_id} for the same selected day`,
+        });
+      }
+    }
+
+    // errorIF: session_category_id logic
+    if (
+      ExerciseScheduleChecks.length > 0 &&
+      session_id &&
+      session_category_id &&
+      !exercise_id &&
+      ExerciseScheduleChecks.some(x => x.session_id === session_id) &&
+      ExerciseScheduleChecks.some(
+        x => x.session_category_id === session_category_id
+      ) &&
+      ExerciseScheduleChecks.some(x => x.duration === duration)
+    ) {
+      if (start_seq) {
+        if (end_seq) {
+          if (multiplier_seq) {
+            return res.status(400).json({
+              error: `Unable to create a session category`,
+              also: 'Please check your data or contact and admin.',
+            });
+          }
+          return res.status(400).json({
+            error: `Unable to create a session category`,
+            also: `multiplier_seq was not defined`,
+          });
+        }
+        return res.status(400).json({
+          error: `Unable to create a session category`,
+          also: `End_seq was not defined`,
+        });
+      }
+      return res.status(400).json({
+        error: `Unable to create a session category`,
+        also: `Start_seq was not defined`,
+        Please:
+          'If you are sure you did everything correct ,contact an admin immediatly, the code is highly bugged: 2352345',
+      });
+    }
+
+    // errorIF: Exercise logic
+    if (
+      ExerciseScheduleChecks.length > 0 &&
+      session_id &&
+      session_category_id &&
+      exercise_id &&
+      ExerciseScheduleChecks.some(x => x.session_id === session_id) &&
+      ExerciseScheduleChecks.some(
+        x => x.session_category_id === session_category_id
+      ) &&
+      ExerciseScheduleChecks.some(x => x.duration === duration) &&
+      ExerciseScheduleChecks.some(x => x.exercise_id === exercise_id) &&
+      ExerciseScheduleChecks.some(x => x.multiplier_seq === multiplier_seq)
+    ) {
+      if (start_seq) {
+        if (end_seq) {
+          if (multiplier_seq) {
+            return res.status(400).json({
+              error: `Unable to create repeted exercise with same repetition or meters`,
+              also: 'Please check your data or contact and admin.',
+            });
+          }
+          return res.status(400).json({
+            error: `Unable to create repeted exercise with same repetition or meters`,
+            also: `The exercise series was not defined`,
+          });
+        }
+        return res.status(400).json({
+          error: `Unable to create repeted exercise with same repetition or meters`,
+          also: `End_seq was not defined`,
+        });
+      }
+      return res.status(400).json({
+        error: `Unable to create repeted exercise with same repetition or meters`,
+        also: `Start_seq was not defined`,
+        Please:
+          'If you are sure you did everything correct ,contact an admin immediatly, some logic are not correct',
+      });
+    }
+
+    // may contain issues that could erase big part of the database schedule exercise do not add update
+    await ExerciseScheduleChecks.update(req.body);
+
+    return res.json({
+      message: `Exercise for the date: ${date} was updated.`,
+    });
   }
 }
 
